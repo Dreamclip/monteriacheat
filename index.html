@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.ico">
     <title>Monteria</title>
+    
+    <!-- Добавьте эти скрипты Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -37,7 +42,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 2rem;
         }
@@ -65,13 +70,69 @@
             margin-bottom: 2rem;
         }
 
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .proposal-form {
             background: rgba(30, 30, 30, 0.7);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 15px;
-            padding: 2.5rem;
+            padding: 2rem;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .proposals-list {
+            background: rgba(30, 30, 30, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .proposals-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #e0e0e0;
+            text-align: center;
+        }
+
+        .proposal-item {
+            background: rgba(20, 20, 20, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .proposal-user {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .proposal-text {
+            color: #b0b0b0;
+            line-height: 1.4;
+        }
+
+        .proposal-time {
+            color: #666;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            text-align: right;
         }
 
         .form-group {
@@ -308,6 +369,12 @@
             text-align: center;
             color: #4CAF50;
         }
+
+        .loading {
+            text-align: center;
+            color: #888;
+            padding: 2rem;
+        }
     </style>
 </head>
 <body>
@@ -333,24 +400,33 @@
             <p class="subtitle">Предложения для чита</p>
         </header>
 
-        <main>
-            <form class="proposal-form" id="proposalForm">
-                <div class="form-group">
-                    <label for="username">Ваш никнейм:</label>
-                    <input type="text" id="username" name="username" required placeholder="Введите ваш никнейм">
-                </div>
+        <main class="content">
+            <div>
+                <form class="proposal-form" id="proposalForm">
+                    <div class="form-group">
+                        <label for="username">Ваш никнейм:</label>
+                        <input type="text" id="username" name="username" required placeholder="Введите ваш никнейм">
+                    </div>
 
-                <div class="form-group">
-                    <label for="proposal">Ваше предложение:</label>
-                    <textarea id="proposal" name="proposal" required placeholder="Опишите ваше предложение..."></textarea>
-                </div>
+                    <div class="form-group">
+                        <label for="proposal">Ваше предложение:</label>
+                        <textarea id="proposal" name="proposal" required placeholder="Опишите ваше предложение..."></textarea>
+                    </div>
 
-                <button type="submit" class="submit-btn">Отправить предложение</button>
-                
-                <div class="success-message" id="successMessage">
-                    Ваше предложение успешно отправлено! Спасибо за ваш вклад.
+                    <button type="submit" class="submit-btn">Отправить предложение</button>
+                    
+                    <div class="success-message" id="successMessage">
+                        Ваше предложение успешно отправлено! Спасибо за ваш вклад.
+                    </div>
+                </form>
+            </div>
+
+            <div class="proposals-list">
+                <h3 class="proposals-title">Последние предложения</h3>
+                <div id="proposalsContainer">
+                    <div class="loading">Загрузка предложений...</div>
                 </div>
-            </form>
+            </div>
         </main>
 
         <footer class="watermark">
@@ -369,18 +445,22 @@
     </div>
 
     <script>
-        // Firebase configuration
+        // 🔥 ЗАМЕНИТЕ ЭТИ ДАННЫЕ НА ВАШИ ИЗ FIREBASE
         const firebaseConfig = {
-            apiKey: "AIzaSyDl6_mIq9Hh6raCcy-ceTuvo2qJpP25PhE",
-            authDomain: "monteria-e8cf4.firebaseapp.com",
-            projectId: "monteria-e8cf4",
-            storageBucket: "monteria-e8cf4.firebasestorage.app",
-            messagingSenderId: "992662389797",
-            appId: "1:992662389797:web:ce12c5757795489271ebcc"
+          apiKey: "AIzaSyDl6_mIq9Hh6raCcy-ceTuvo2qJpP25PhE",
+          authDomain: "monteria-e8cf4.firebaseapp.com",
+          projectId: "monteria-e8cf4",
+          storageBucket: "monteria-e8cf4.firebasestorage.app",
+          messagingSenderId: "992662389797",
+          appId: "1:992662389797:web:ce12c5757795489271ebcc"
         };
 
         // Правильный бета-код
         const CORRECT_BETA_CODE = "SAJKL-1078";
+
+        // Инициализация Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
 
         // Cookie Banner
         document.addEventListener('DOMContentLoaded', function() {
@@ -437,47 +517,133 @@
                 const username = document.getElementById('username').value;
                 const proposal = document.getElementById('proposal').value;
 
-                // Здесь будет отправка в Firebase
-                saveProposalToFirebase(username, proposal);
-                
-                // Показываем успешное сообщение
-                successMessage.style.display = 'block';
-                proposalForm.reset();
-                
-                setTimeout(() => {
-                    successMessage.style.display = 'none';
-                }, 5000);
+                if (username && proposal) {
+                    saveProposalToFirebase(username, proposal);
+                    
+                    // Показываем успешное сообщение
+                    successMessage.style.display = 'block';
+                    proposalForm.reset();
+                    
+                    setTimeout(() => {
+                        successMessage.style.display = 'none';
+                    }, 5000);
+                }
             });
+
+            // Загружаем предложения при загрузке страницы
+            loadProposals();
         });
 
         // Функция для сохранения в Firebase
-        function saveProposalToFirebase(username, proposal) {
-            // Временное решение - сохраняем в localStorage
-            // Замените это на реальную Firebase логику когда настроите
+        async function saveProposalToFirebase(username, proposal) {
+            try {
+                await db.collection("proposals").add({
+                    username: username,
+                    proposal: proposal,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    date: new Date().toLocaleString('ru-RU')
+                });
+                console.log('Предложение сохранено в Firebase!');
+                
+                // Обновляем список предложений
+                loadProposals();
+            } catch (error) {
+                console.error('Ошибка сохранения:', error);
+                // Резервное сохранение в localStorage
+                saveToLocalStorage(username, proposal);
+            }
+        }
+
+        // Функция для загрузки предложений из Firebase
+        async function loadProposals() {
+            try {
+                const proposalsContainer = document.getElementById('proposalsContainer');
+                proposalsContainer.innerHTML = '<div class="loading">Загрузка предложений...</div>';
+
+                const snapshot = await db.collection("proposals")
+                    .orderBy("timestamp", "desc")
+                    .limit(20)
+                    .get();
+
+                if (snapshot.empty) {
+                    proposalsContainer.innerHTML = '<div class="loading">Пока нет предложений. Будьте первым!</div>';
+                    return;
+                }
+
+                proposalsContainer.innerHTML = '';
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const proposalItem = document.createElement('div');
+                    proposalItem.className = 'proposal-item';
+                    proposalItem.innerHTML = `
+                        <div class="proposal-user">${escapeHtml(data.username)}</div>
+                        <div class="proposal-text">${escapeHtml(data.proposal)}</div>
+                        <div class="proposal-time">${data.date || 'Только что'}</div>
+                    `;
+                    proposalsContainer.appendChild(proposalItem);
+                });
+
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+                loadFromLocalStorage();
+            }
+        }
+
+        // Резервные функции для localStorage
+        function saveToLocalStorage(username, proposal) {
             const proposals = JSON.parse(localStorage.getItem('monteria_proposals') || '[]');
             const newProposal = {
                 username: username,
                 proposal: proposal,
                 timestamp: new Date().toISOString(),
-                id: Date.now()
+                date: new Date().toLocaleString('ru-RU')
             };
-            
-            proposals.push(newProposal);
-            localStorage.setItem('monteria_proposals', JSON.stringify(proposals));
-            
-            console.log('Предложение сохранено:', newProposal);
-            console.log('Все предложения:', proposals);
+            proposals.unshift(newProposal); // Добавляем в начало
+            localStorage.setItem('monteria_proposals', JSON.stringify(proposals.slice(0, 20))); // Сохраняем только 20 последних
         }
 
-        // Функция для просмотра предложений (для вас)
-        function viewProposals() {
+        function loadFromLocalStorage() {
             const proposals = JSON.parse(localStorage.getItem('monteria_proposals') || '[]');
-            console.log('Все предложения:', proposals);
-            return proposals;
+            const proposalsContainer = document.getElementById('proposalsContainer');
+            
+            if (proposals.length === 0) {
+                proposalsContainer.innerHTML = '<div class="loading">Пока нет предложений. Будьте первым!</div>';
+                return;
+            }
+
+            proposalsContainer.innerHTML = '';
+            proposals.forEach(proposal => {
+                const proposalItem = document.createElement('div');
+                proposalItem.className = 'proposal-item';
+                proposalItem.innerHTML = `
+                    <div class="proposal-user">${escapeHtml(proposal.username)}</div>
+                    <div class="proposal-text">${escapeHtml(proposal.proposal)}</div>
+                    <div class="proposal-time">${proposal.date}</div>
+                `;
+                proposalsContainer.appendChild(proposalItem);
+            });
+        }
+
+        // Функция для безопасного отображения текста
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Функция для просмотра всех предложений (для админа)
+        async function viewAllProposals() {
+            const snapshot = await db.collection("proposals").orderBy("timestamp", "desc").get();
+            const allProposals = [];
+            snapshot.forEach(doc => {
+                allProposals.push({ id: doc.id, ...doc.data() });
+            });
+            console.log('Все предложения:', allProposals);
+            return allProposals;
         }
     </script>
 </body>
-
 </html>
 
 
