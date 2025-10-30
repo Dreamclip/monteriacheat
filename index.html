@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monteria</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-top: 2rem;
+        }
+
+        .logo {
+            font-size: 3.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #888;
+            margin-bottom: 2rem;
+        }
+
+        .proposal-form {
+            background: rgba(30, 30, 30, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 2.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #b0b0b0;
+            font-weight: 500;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(20, 20, 20, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .watermark {
+            text-align: center;
+            margin-top: 3rem;
+            padding: 1.5rem;
+            color: #666;
+            font-size: 0.9rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Cookie Banner */
+        .cookie-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(20, 20, 20, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .cookie-banner.show {
+            transform: translateY(0);
+        }
+
+        .cookie-content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .cookie-text {
+            flex: 1;
+            color: #b0b0b0;
+        }
+
+        .cookie-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+
+        .cookie-btn:hover {
+            background: #5a6fd8;
+        }
+
+        /* Beta Code Modal */
+        .beta-modal {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(30, 30, 30, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            z-index: 1001;
+            max-width: 300px;
+        }
+
+        .beta-modal.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .beta-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .beta-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            color: #e0e0e0;
+        }
+
+        .beta-input {
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        .beta-submit {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .beta-submit:hover {
+            background: #5a6fd8;
+        }
+
+        .beta-success {
+            color: #4CAF50;
+            text-align: center;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        /* Beta Trigger */
+        .beta-trigger {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(30, 30, 30, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 8px 16px;
+            color: #b0b0b0;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            z-index: 999;
+        }
+
+        .beta-trigger:hover {
+            background: rgba(40, 40, 40, 0.9);
+            color: #e0e0e0;
+        }
+
+        /* Success Message */
+        .success-message {
+            display: none;
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            text-align: center;
+            color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <!-- Beta Code Trigger -->
+    <div class="beta-trigger" id="betaTrigger">
+        Бета-код
+    </div>
+
+    <!-- Beta Code Modal -->
+    <div class="beta-modal" id="betaModal">
+        <div class="beta-header">
+            <div class="beta-title">Введите бета-код</div>
+            <button class="close-btn" id="closeBeta">&times;</button>
+        </div>
+        <input type="text" class="beta-input" id="betaCode" placeholder="10-значный код" maxlength="10">
+        <button class="beta-submit" id="submitBeta">Подтвердить</button>
+        <div class="beta-success" id="betaSuccess">✓ Ваш код одобрен!</div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1 class="logo">Monteria</h1>
+            <p class="subtitle">Предложения для чита</p>
+        </header>
+
+        <main>
+            <form class="proposal-form" id="proposalForm">
+                <div class="form-group">
+                    <label for="username">Ваш никнейм:</label>
+                    <input type="text" id="username" name="username" required placeholder="Введите ваш никнейм">
+                </div>
+
+                <div class="form-group">
+                    <label for="proposal">Ваше предложение:</label>
+                    <textarea id="proposal" name="proposal" required placeholder="Опишите ваше предложение..."></textarea>
+                </div>
+
+                <button type="submit" class="submit-btn">Отправить предложение</button>
+                
+                <div class="success-message" id="successMessage">
+                    Ваше предложение успешно отправлено! Спасибо за ваш вклад.
+                </div>
+            </form>
+        </main>
+
+        <footer class="watermark">
+            Monteria MIT. Не как не связана с MojangAB все финансы идут на разработку
+        </footer>
+    </div>
+
+    <!-- Cookie Banner -->
+    <div class="cookie-banner" id="cookieBanner">
+        <div class="cookie-content">
+            <div class="cookie-text">
+                Мы используем файлы cookie для улучшения работы сайта. Продолжая использование, вы соглашаетесь с этим.
+            </div>
+            <button class="cookie-btn" id="acceptCookies">Понятно</button>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDl6_mIq9Hh6raCcy-ceTuvo2qJpP25PhE",
+            authDomain: "monteria-e8cf4.firebaseapp.com",
+            projectId: "monteria-e8cf4",
+            storageBucket: "monteria-e8cf4.firebasestorage.app",
+            messagingSenderId: "992662389797",
+            appId: "1:992662389797:web:ce12c5757795489271ebcc"
+        };
+
+        // Правильный бета-код
+        const CORRECT_BETA_CODE = "SAJKL-1078";
+
+        // Cookie Banner
+        document.addEventListener('DOMContentLoaded', function() {
+            const cookieBanner = document.getElementById('cookieBanner');
+            const acceptCookies = document.getElementById('acceptCookies');
+            
+            if (!localStorage.getItem('cookiesAccepted')) {
+                setTimeout(() => {
+                    cookieBanner.classList.add('show');
+                }, 1000);
+            }
+
+            acceptCookies.addEventListener('click', function() {
+                localStorage.setItem('cookiesAccepted', 'true');
+                cookieBanner.classList.remove('show');
+            });
+
+            // Beta Code Modal
+            const betaTrigger = document.getElementById('betaTrigger');
+            const betaModal = document.getElementById('betaModal');
+            const closeBeta = document.getElementById('closeBeta');
+            const submitBeta = document.getElementById('submitBeta');
+            const betaCode = document.getElementById('betaCode');
+            const betaSuccess = document.getElementById('betaSuccess');
+
+            betaTrigger.addEventListener('click', function() {
+                betaModal.classList.add('show');
+            });
+
+            closeBeta.addEventListener('click', function() {
+                betaModal.classList.remove('show');
+            });
+
+            submitBeta.addEventListener('click', function() {
+                if (betaCode.value === CORRECT_BETA_CODE) {
+                    betaSuccess.style.display = 'block';
+                    setTimeout(() => {
+                        betaModal.classList.remove('show');
+                        betaSuccess.style.display = 'none';
+                        betaCode.value = '';
+                    }, 2000);
+                } else {
+                    alert('Неверный код! Попробуйте снова.');
+                }
+            });
+
+            // Form Submission
+            const proposalForm = document.getElementById('proposalForm');
+            const successMessage = document.getElementById('successMessage');
+
+            proposalForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value;
+                const proposal = document.getElementById('proposal').value;
+
+                // Здесь будет отправка в Firebase
+                saveProposalToFirebase(username, proposal);
+                
+                // Показываем успешное сообщение
+                successMessage.style.display = 'block';
+                proposalForm.reset();
+                
+                setTimeout(() => {
+                    successMessage.style.display = 'none';
+                }, 5000);
+            });
+        });
+
+        // Функция для сохранения в Firebase
+        function saveProposalToFirebase(username, proposal) {
+            // Временное решение - сохраняем в localStorage
+            // Замените это на реальную Firebase логику когда настроите
+            const proposals = JSON.parse(localStorage.getItem('monteria_proposals') || '[]');
+            const newProposal = {
+                username: username,
+                proposal: proposal,
+                timestamp: new Date().toISOString(),
+                id: Date.now()
+            };
+            
+            proposals.push(newProposal);
+            localStorage.setItem('monteria_proposals', JSON.stringify(proposals));
+            
+            console.log('Предложение сохранено:', newProposal);
+            console.log('Все предложения:', proposals);
+        }
+
+        // Функция для просмотра предложений (для вас)
+        function viewProposals() {
+            const proposals = JSON.parse(localStorage.getItem('monteria_proposals') || '[]');
+            console.log('Все предложения:', proposals);
+            return proposals;
+        }
+    </script>
+</body>
+</html>
