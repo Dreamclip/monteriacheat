@@ -10,9 +10,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
     
-    <!-- reCAPTCHA -->
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-    
     <style>
         * {
             margin: 0;
@@ -547,6 +544,28 @@
             color: #888;
             font-size: 0.9rem;
         }
+
+        /* Simple CAPTCHA */
+        .simple-captcha {
+            background: rgba(20, 20, 20, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .captcha-question {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: #e0e0e0;
+        }
+
+        .captcha-answer {
+            width: 100px;
+            margin: 0 auto;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -588,6 +607,13 @@
                     <label for="registerPassword">Пароль:</label>
                     <input type="password" id="registerPassword" required placeholder="Не менее 6 символов" minlength="6">
                 </div>
+                
+                <!-- Простая капча -->
+                <div class="simple-captcha" id="simpleCaptcha">
+                    <div class="captcha-question" id="captchaQuestion">Сколько будет 2 + 2?</div>
+                    <input type="text" class="captcha-answer" id="captchaAnswer" placeholder="Ответ">
+                </div>
+                
                 <button class="submit-btn" id="registerBtn">Зарегистрироваться</button>
                 <div class="error-message" id="registerError"></div>
             </div>
@@ -639,9 +665,11 @@
                         </div>
                     </div>
 
-                    <!-- reCAPTCHA -->
-                    <div class="g-recaptcha" data-sitekey="6LddivwrAAAAAFwC1Loe2EsIh3KFApBc_vFca-L8"></div>
-                    <div class="captcha-note">Подтвердите, что вы не робот</div>
+                    <!-- Простая капча для предложений -->
+                    <div class="simple-captcha">
+                        <div class="captcha-question" id="proposalCaptchaQuestion">Сколько будет 3 + 4?</div>
+                        <input type="text" class="captcha-answer" id="proposalCaptchaAnswer" placeholder="Ответ">
+                    </div>
 
                     <button type="submit" class="submit-btn" id="submitBtn" disabled>Отправить предложение</button>
                     
@@ -699,9 +727,6 @@
         // Правильный бета-код
         const CORRECT_BETA_CODE = "SAJKL-1078";
 
-        // reCAPTCHA ключ
-        const RECAPTCHA_SITE_KEY = "6LddivwrAAAAAFwC1Loe2EsIh3KFApBc_vFca-L8";
-
         // Список запрещенных слов (русские маты)
         const BAD_WORDS = [
             'бля', 'блять', 'блядь', 'хуй', 'пизда', 'ебать', 'ебал', 'ебаный',
@@ -720,13 +745,36 @@
         // Текущий пользователь
         let currentUser = null;
 
+        // Простая капча
+        let currentCaptchaAnswer = null;
+        let currentProposalCaptchaAnswer = null;
+
         // Инициализация Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
 
+        // Генерация простой капчи
+        function generateCaptcha() {
+            const num1 = Math.floor(Math.random() * 10) + 1;
+            const num2 = Math.floor(Math.random() * 10) + 1;
+            currentCaptchaAnswer = (num1 + num2).toString();
+            document.getElementById('captchaQuestion').textContent = `Сколько будет ${num1} + ${num2}?`;
+        }
+
+        function generateProposalCaptcha() {
+            const num1 = Math.floor(Math.random() * 10) + 1;
+            const num2 = Math.floor(Math.random() * 10) + 1;
+            currentProposalCaptchaAnswer = (num1 + num2).toString();
+            document.getElementById('proposalCaptchaQuestion').textContent = `Сколько будет ${num1} + ${num2}?`;
+        }
+
         // Cookie Banner
         document.addEventListener('DOMContentLoaded', function() {
+            // Генерируем капчи при загрузке
+            generateCaptcha();
+            generateProposalCaptcha();
+
             // Проверяем авторизацию при загрузке
             checkAuthState();
 
@@ -798,18 +846,21 @@
 
                 const username = document.getElementById('username').value;
                 const proposal = document.getElementById('proposal').value;
-                const recaptchaResponse = grecaptcha.getResponse();
+                const captchaAnswer = document.getElementById('proposalCaptchaAnswer').value;
 
-                // Проверка reCAPTCHA
-                if (!recaptchaResponse) {
-                    showError('Пожалуйста, подтвердите что вы не робот!');
+                // Проверка капчи
+                if (captchaAnswer !== currentProposalCaptchaAnswer) {
+                    showError('Неверный ответ на проверку! Попробуйте снова.');
+                    generateProposalCaptcha();
+                    document.getElementById('proposalCaptchaAnswer').value = '';
                     return;
                 }
 
                 // Проверка на маты
                 if (containsBadWords(proposal)) {
                     showError('Обнаружены запрещенные слова! Пожалуйста, измените текст.');
-                    grecaptcha.reset();
+                    generateProposalCaptcha();
+                    document.getElementById('proposalCaptchaAnswer').value = '';
                     return;
                 }
 
@@ -822,7 +873,8 @@
                         showSuccess();
                         proposalForm.reset();
                         charCount.textContent = '0';
-                        grecaptcha.reset();
+                        generateProposalCaptcha();
+                        document.getElementById('proposalCaptchaAnswer').value = '';
                         submitBtn.disabled = false;
                         submitBtn.textContent = 'Отправить предложение';
                     } catch (error) {
@@ -877,12 +929,16 @@
         }
 
         async function loadUserData(user) {
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            if (userDoc.exists) {
-                const userData = userDoc.data();
-                document.getElementById('username').value = userData.nickname;
-                document.getElementById('userName').textContent = userData.nickname;
-                document.getElementById('userAvatar').textContent = userData.nickname.charAt(0).toUpperCase();
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    document.getElementById('username').value = userData.nickname;
+                    document.getElementById('userName').textContent = userData.nickname;
+                    document.getElementById('userAvatar').textContent = userData.nickname.charAt(0).toUpperCase();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки данных пользователя:', error);
             }
         }
 
@@ -910,6 +966,11 @@
             // Clear errors
             document.getElementById('loginError').style.display = 'none';
             document.getElementById('registerError').style.display = 'none';
+
+            // Генерируем новую капчу при переключении на регистрацию
+            if (tabName === 'register') {
+                generateCaptcha();
+            }
         }
 
         async function login() {
@@ -936,6 +997,7 @@
             const nickname = document.getElementById('registerNickname').value;
             const email = document.getElementById('registerEmail').value;
             const password = document.getElementById('registerPassword').value;
+            const captchaAnswer = document.getElementById('captchaAnswer').value;
             const errorElement = document.getElementById('registerError');
 
             if (!nickname || !email || !password) {
@@ -953,6 +1015,15 @@
             if (containsBadWords(nickname)) {
                 errorElement.textContent = 'Никнейм содержит запрещенные слова';
                 errorElement.style.display = 'block';
+                return;
+            }
+
+            // Проверка капчи
+            if (captchaAnswer !== currentCaptchaAnswer) {
+                errorElement.textContent = 'Неверный ответ на проверку! Попробуйте снова.';
+                errorElement.style.display = 'block';
+                generateCaptcha();
+                document.getElementById('captchaAnswer').value = '';
                 return;
             }
 
