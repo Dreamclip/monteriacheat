@@ -3,12 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="favicon.ico">
     <title>Monteria</title>
     
     <!-- Добавьте эти скрипты Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    
+    <!-- reCAPTCHA -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     
     <style>
         * {
@@ -51,6 +54,7 @@
             text-align: center;
             margin-bottom: 3rem;
             padding-top: 2rem;
+            position: relative;
         }
 
         .logo {
@@ -179,15 +183,18 @@
             cursor: pointer;
             transition: all 0.3s ease;
             width: 100%;
+            margin-top: 1rem;
         }
 
-        .submit-btn:hover {
+        .submit-btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
         }
 
-        .submit-btn:active {
-            transform: translateY(0);
+        .submit-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
         }
 
         .watermark {
@@ -197,6 +204,112 @@
             color: #666;
             font-size: 0.9rem;
             border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Auth Modal */
+        .auth-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .auth-modal.show {
+            display: flex;
+        }
+
+        .auth-content {
+            background: rgba(30, 30, 30, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 2.5rem;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 1rem;
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .auth-tab.active {
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .auth-title {
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 1.5rem;
+            color: #e0e0e0;
+        }
+
+        /* User Info */
+        .user-info {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .user-name {
+            color: #e0e0e0;
+        }
+
+        .logout-btn {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+            color: #f44336;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(244, 67, 54, 0.3);
         }
 
         /* Cookie Banner */
@@ -358,7 +471,7 @@
             color: #e0e0e0;
         }
 
-        /* Success Message */
+        /* Success/Error Messages */
         .success-message {
             display: none;
             background: rgba(76, 175, 80, 0.1);
@@ -370,14 +483,117 @@
             color: #4CAF50;
         }
 
+        .error-message {
+            display: none;
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            text-align: center;
+            color: #f44336;
+        }
+
         .loading {
             text-align: center;
             color: #888;
             padding: 2rem;
         }
+
+        /* reCAPTCHA стили */
+        .g-recaptcha {
+            margin: 1rem 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .captcha-note {
+            text-align: center;
+            color: #888;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Пагинация */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 1rem;
+            gap: 1rem;
+        }
+
+        .page-btn {
+            background: rgba(102, 126, 234, 0.3);
+            border: 1px solid rgba(102, 126, 234, 0.5);
+            color: #e0e0e0;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: rgba(102, 126, 234, 0.5);
+        }
+
+        .page-btn:disabled {
+            background: rgba(102, 126, 234, 0.1);
+            cursor: not-allowed;
+            color: #666;
+        }
+
+        .page-info {
+            color: #888;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
+    <!-- Auth Modal -->
+    <div class="auth-modal" id="authModal">
+        <div class="auth-content">
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="login">Вход</button>
+                <button class="auth-tab" data-tab="register">Регистрация</button>
+            </div>
+
+            <!-- Форма входа -->
+            <div class="auth-form active" id="loginForm">
+                <h3 class="auth-title">Вход в аккаунт</h3>
+                <div class="form-group">
+                    <label for="loginEmail">Email:</label>
+                    <input type="email" id="loginEmail" required placeholder="Ваш email">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Пароль:</label>
+                    <input type="password" id="loginPassword" required placeholder="Ваш пароль">
+                </div>
+                <button class="submit-btn" id="loginBtn">Войти</button>
+                <div class="error-message" id="loginError"></div>
+            </div>
+
+            <!-- Форма регистрации -->
+            <div class="auth-form" id="registerForm">
+                <h3 class="auth-title">Регистрация</h3>
+                <div class="form-group">
+                    <label for="registerNickname">Никнейм:</label>
+                    <input type="text" id="registerNickname" required placeholder="Придумайте никнейм" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label for="registerEmail">Email:</label>
+                    <input type="email" id="registerEmail" required placeholder="Ваш email">
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Пароль:</label>
+                    <input type="password" id="registerPassword" required placeholder="Не менее 6 символов" minlength="6">
+                </div>
+                <button class="submit-btn" id="registerBtn">Зарегистрироваться</button>
+                <div class="error-message" id="registerError"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Beta Code Trigger -->
     <div class="beta-trigger" id="betaTrigger">
         Бета-код
@@ -398,6 +614,13 @@
         <header>
             <h1 class="logo">Monteria</h1>
             <p class="subtitle">Предложения для чита</p>
+            
+            <!-- Информация о пользователе -->
+            <div class="user-info" id="userInfo" style="display: none;">
+                <div class="user-avatar" id="userAvatar">U</div>
+                <div class="user-name" id="userName"></div>
+                <button class="logout-btn" id="logoutBtn">Выйти</button>
+            </div>
         </header>
 
         <main class="content">
@@ -405,18 +628,29 @@
                 <form class="proposal-form" id="proposalForm">
                     <div class="form-group">
                         <label for="username">Ваш никнейм:</label>
-                        <input type="text" id="username" name="username" required placeholder="Введите ваш никнейм">
+                        <input type="text" id="username" name="username" required placeholder="Введите ваш никнейм" maxlength="30" readonly>
                     </div>
 
                     <div class="form-group">
                         <label for="proposal">Ваше предложение:</label>
-                        <textarea id="proposal" name="proposal" required placeholder="Опишите ваше предложение..."></textarea>
+                        <textarea id="proposal" name="proposal" required placeholder="Опишите ваше предложение..." maxlength="500"></textarea>
+                        <div style="text-align: right; color: #666; font-size: 0.8rem; margin-top: 0.5rem;">
+                            <span id="charCount">0</span>/500 символов
+                        </div>
                     </div>
 
-                    <button type="submit" class="submit-btn">Отправить предложение</button>
+                    <!-- reCAPTCHA -->
+                    <div class="g-recaptcha" data-sitekey="6LddivwrAAAAAFwC1Loe2EsIh3KFApBc_vFca-L8"></div>
+                    <div class="captcha-note">Подтвердите, что вы не робот</div>
+
+                    <button type="submit" class="submit-btn" id="submitBtn" disabled>Отправить предложение</button>
                     
                     <div class="success-message" id="successMessage">
                         Ваше предложение успешно отправлено! Спасибо за ваш вклад.
+                    </div>
+
+                    <div class="error-message" id="errorMessage">
+                        Ошибка: Обнаружены запрещенные слова или вы не прошли проверку!
                     </div>
                 </form>
             </div>
@@ -425,6 +659,13 @@
                 <h3 class="proposals-title">Последние предложения</h3>
                 <div id="proposalsContainer">
                     <div class="loading">Загрузка предложений...</div>
+                </div>
+                
+                <!-- Пагинация -->
+                <div class="pagination">
+                    <button class="page-btn" id="prevPage" disabled>← Назад</button>
+                    <span class="page-info" id="pageInfo">Страница 1</span>
+                    <button class="page-btn" id="nextPage">Вперед →</button>
                 </div>
             </div>
         </main>
@@ -445,25 +686,50 @@
     </div>
 
     <script>
-        // 🔥 ЗАМЕНИТЕ ЭТИ ДАННЫЕ НА ВАШИ ИЗ FIREBASE
+        // 🔥 ВАШИ ДАННЫЕ FIREBASE
         const firebaseConfig = {
-          apiKey: "AIzaSyDl6_mIq9Hh6raCcy-ceTuvo2qJpP25PhE",
-          authDomain: "monteria-e8cf4.firebaseapp.com",
-          projectId: "monteria-e8cf4",
-          storageBucket: "monteria-e8cf4.firebasestorage.app",
-          messagingSenderId: "992662389797",
-          appId: "1:992662389797:web:ce12c5757795489271ebcc"
+            apiKey: "AIzaSyDl6_mIq9Hh6raCcy-ceTuvo2qJpP25PhE",
+            authDomain: "monteria-e8cf4.firebaseapp.com",
+            projectId: "monteria-e8cf4",
+            storageBucket: "monteria-e8cf4.firebasestorage.app",
+            messagingSenderId: "992662389797",
+            appId: "1:992662389797:web:ce12c5757795489271ebcc"
         };
 
         // Правильный бета-код
         const CORRECT_BETA_CODE = "SAJKL-1078";
 
+        // reCAPTCHA ключ
+        const RECAPTCHA_SITE_KEY = "6LddivwrAAAAAFwC1Loe2EsIh3KFApBc_vFca-L8";
+
+        // Список запрещенных слов (русские маты)
+        const BAD_WORDS = [
+            'бля', 'блять', 'блядь', 'хуй', 'пизда', 'ебать', 'ебал', 'ебаный',
+            'хуев', 'хуёвый', 'пиздец', 'охуенно', 'охуенный', 'мудак', 'мудила',
+            'гандон', 'шлюха', 'проститутка', 'сука', 'сучка', 'долбоёб', 'уёбок',
+            'заебись', 'заебали', 'выеб', 'выебать', 'нахуй', 'похуй', 'охуй',
+            'ахуеть', 'хуя', 'хуе', 'пизд', 'ебан', 'ебис', 'ебу', 'ебы'
+        ];
+
+        // Пагинация
+        let currentPage = 1;
+        const PROPOSALS_PER_PAGE = 5;
+        let lastVisible = null;
+        let firstVisible = null;
+
+        // Текущий пользователь
+        let currentUser = null;
+
         // Инициализация Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const auth = firebase.auth();
 
         // Cookie Banner
         document.addEventListener('DOMContentLoaded', function() {
+            // Проверяем авторизацию при загрузке
+            checkAuthState();
+
             const cookieBanner = document.getElementById('cookieBanner');
             const acceptCookies = document.getElementById('acceptCookies');
             
@@ -507,32 +773,248 @@
                 }
             });
 
+            // Счетчик символов
+            const proposalText = document.getElementById('proposal');
+            const charCount = document.getElementById('charCount');
+            
+            proposalText.addEventListener('input', function() {
+                charCount.textContent = this.value.length;
+            });
+
             // Form Submission
             const proposalForm = document.getElementById('proposalForm');
             const successMessage = document.getElementById('successMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            const submitBtn = document.getElementById('submitBtn');
 
-            proposalForm.addEventListener('submit', function(e) {
+            proposalForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
+                if (!currentUser) {
+                    showError('Пожалуйста, войдите в аккаунт!');
+                    showAuthModal();
+                    return;
+                }
+
                 const username = document.getElementById('username').value;
                 const proposal = document.getElementById('proposal').value;
+                const recaptchaResponse = grecaptcha.getResponse();
+
+                // Проверка reCAPTCHA
+                if (!recaptchaResponse) {
+                    showError('Пожалуйста, подтвердите что вы не робот!');
+                    return;
+                }
+
+                // Проверка на маты
+                if (containsBadWords(proposal)) {
+                    showError('Обнаружены запрещенные слова! Пожалуйста, измените текст.');
+                    grecaptcha.reset();
+                    return;
+                }
 
                 if (username && proposal) {
-                    saveProposalToFirebase(username, proposal);
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Отправка...';
                     
-                    // Показываем успешное сообщение
-                    successMessage.style.display = 'block';
-                    proposalForm.reset();
-                    
-                    setTimeout(() => {
-                        successMessage.style.display = 'none';
-                    }, 5000);
+                    try {
+                        await saveProposalToFirebase(username, proposal);
+                        showSuccess();
+                        proposalForm.reset();
+                        charCount.textContent = '0';
+                        grecaptcha.reset();
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Отправить предложение';
+                    } catch (error) {
+                        showError('Ошибка при отправке. Попробуйте снова.');
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Отправить предложение';
+                    }
                 }
             });
 
-            // Загружаем предложения при загрузке страницы
-            loadProposals();
+            // Пагинация
+            document.getElementById('prevPage').addEventListener('click', loadPrevPage);
+            document.getElementById('nextPage').addEventListener('click', loadNextPage);
+
+            // Auth Tabs
+            document.querySelectorAll('.auth-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabName = this.getAttribute('data-tab');
+                    switchAuthTab(tabName);
+                });
+            });
+
+            // Auth Buttons
+            document.getElementById('loginBtn').addEventListener('click', login);
+            document.getElementById('registerBtn').addEventListener('click', register);
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+
+            // Enter key for auth forms
+            document.getElementById('loginPassword').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') login();
+            });
+            document.getElementById('registerPassword').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') register();
+            });
         });
+
+        // Функции авторизации
+        function checkAuthState() {
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    currentUser = user;
+                    await loadUserData(user);
+                    hideAuthModal();
+                    updateUIForUser();
+                    loadProposals();
+                } else {
+                    currentUser = null;
+                    showAuthModal();
+                    updateUIForGuest();
+                }
+            });
+        }
+
+        async function loadUserData(user) {
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                document.getElementById('username').value = userData.nickname;
+                document.getElementById('userName').textContent = userData.nickname;
+                document.getElementById('userAvatar').textContent = userData.nickname.charAt(0).toUpperCase();
+            }
+        }
+
+        function showAuthModal() {
+            document.getElementById('authModal').classList.add('show');
+        }
+
+        function hideAuthModal() {
+            document.getElementById('authModal').classList.remove('show');
+        }
+
+        function switchAuthTab(tabName) {
+            // Update tabs
+            document.querySelectorAll('.auth-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+            // Update forms
+            document.querySelectorAll('.auth-form').forEach(form => {
+                form.classList.remove('active');
+            });
+            document.getElementById(`${tabName}Form`).classList.add('active');
+
+            // Clear errors
+            document.getElementById('loginError').style.display = 'none';
+            document.getElementById('registerError').style.display = 'none';
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorElement = document.getElementById('loginError');
+
+            if (!email || !password) {
+                errorElement.textContent = 'Заполните все поля';
+                errorElement.style.display = 'block';
+                return;
+            }
+
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                // Успешный вход обрабатывается в onAuthStateChanged
+            } catch (error) {
+                errorElement.textContent = getAuthErrorMessage(error);
+                errorElement.style.display = 'block';
+            }
+        }
+
+        async function register() {
+            const nickname = document.getElementById('registerNickname').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const errorElement = document.getElementById('registerError');
+
+            if (!nickname || !email || !password) {
+                errorElement.textContent = 'Заполните все поля';
+                errorElement.style.display = 'block';
+                return;
+            }
+
+            if (password.length < 6) {
+                errorElement.textContent = 'Пароль должен быть не менее 6 символов';
+                errorElement.style.display = 'block';
+                return;
+            }
+
+            if (containsBadWords(nickname)) {
+                errorElement.textContent = 'Никнейм содержит запрещенные слова';
+                errorElement.style.display = 'block';
+                return;
+            }
+
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                
+                // Сохраняем данные пользователя
+                await db.collection('users').doc(user.uid).set({
+                    nickname: nickname,
+                    email: email,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // Успешная регистрация обрабатывается в onAuthStateChanged
+            } catch (error) {
+                errorElement.textContent = getAuthErrorMessage(error);
+                errorElement.style.display = 'block';
+            }
+        }
+
+        async function logout() {
+            try {
+                await auth.signOut();
+            } catch (error) {
+                console.error('Ошибка выхода:', error);
+            }
+        }
+
+        function getAuthErrorMessage(error) {
+            switch (error.code) {
+                case 'auth/email-already-in-use':
+                    return 'Этот email уже используется';
+                case 'auth/invalid-email':
+                    return 'Неверный формат email';
+                case 'auth/weak-password':
+                    return 'Пароль слишком слабый';
+                case 'auth/user-not-found':
+                    return 'Пользователь не найден';
+                case 'auth/wrong-password':
+                    return 'Неверный пароль';
+                default:
+                    return 'Произошла ошибка. Попробуйте снова';
+            }
+        }
+
+        function updateUIForUser() {
+            document.getElementById('userInfo').style.display = 'flex';
+            document.getElementById('submitBtn').disabled = false;
+        }
+
+        function updateUIForGuest() {
+            document.getElementById('userInfo').style.display = 'none';
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('username').value = '';
+        }
+
+        // Функция проверки на маты
+        function containsBadWords(text) {
+            const lowerText = text.toLowerCase();
+            return BAD_WORDS.some(word => lowerText.includes(word));
+        }
 
         // Функция для сохранения в Firebase
         async function saveProposalToFirebase(username, proposal) {
@@ -540,6 +1022,7 @@
                 await db.collection("proposals").add({
                     username: username,
                     proposal: proposal,
+                    userId: currentUser.uid,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     date: new Date().toLocaleString('ru-RU')
                 });
@@ -549,26 +1032,37 @@
                 loadProposals();
             } catch (error) {
                 console.error('Ошибка сохранения:', error);
-                // Резервное сохранение в localStorage
-                saveToLocalStorage(username, proposal);
+                throw error;
             }
         }
 
         // Функция для загрузки предложений из Firebase
-        async function loadProposals() {
+        async function loadProposals(direction = 'first') {
             try {
                 const proposalsContainer = document.getElementById('proposalsContainer');
                 proposalsContainer.innerHTML = '<div class="loading">Загрузка предложений...</div>';
 
-                const snapshot = await db.collection("proposals")
+                let query = db.collection("proposals")
                     .orderBy("timestamp", "desc")
-                    .limit(20)
-                    .get();
+                    .limit(PROPOSALS_PER_PAGE);
+
+                if (direction === 'next' && lastVisible) {
+                    query = query.startAfter(lastVisible);
+                } else if (direction === 'prev' && firstVisible) {
+                    query = query.endBefore(firstVisible).limitToLast(PROPOSALS_PER_PAGE);
+                }
+
+                const snapshot = await query.get();
 
                 if (snapshot.empty) {
                     proposalsContainer.innerHTML = '<div class="loading">Пока нет предложений. Будьте первым!</div>';
+                    updatePaginationButtons(false, false);
                     return;
                 }
+
+                // Сохраняем для пагинации
+                lastVisible = snapshot.docs[snapshot.docs.length - 1];
+                firstVisible = snapshot.docs[0];
 
                 proposalsContainer.innerHTML = '';
                 
@@ -584,45 +1078,65 @@
                     proposalsContainer.appendChild(proposalItem);
                 });
 
+                // Обновляем кнопки пагинации
+                updatePaginationButtons(true, true);
+
             } catch (error) {
                 console.error('Ошибка загрузки:', error);
-                loadFromLocalStorage();
+                proposalsContainer.innerHTML = '<div class="loading">Ошибка загрузки предложений</div>';
             }
         }
 
-        // Резервные функции для localStorage
-        function saveToLocalStorage(username, proposal) {
-            const proposals = JSON.parse(localStorage.getItem('monteria_proposals') || '[]');
-            const newProposal = {
-                username: username,
-                proposal: proposal,
-                timestamp: new Date().toISOString(),
-                date: new Date().toLocaleString('ru-RU')
-            };
-            proposals.unshift(newProposal); // Добавляем в начало
-            localStorage.setItem('monteria_proposals', JSON.stringify(proposals.slice(0, 20))); // Сохраняем только 20 последних
+        // Пагинация вперед
+        async function loadNextPage() {
+            currentPage++;
+            await loadProposals('next');
+            updatePageInfo();
         }
 
-        function loadFromLocalStorage() {
-            const proposals = JSON.parse(localStorage.getItem('monteria_proposals') || '[]');
-            const proposalsContainer = document.getElementById('proposalsContainer');
+        // Пагинация назад
+        async function loadPrevPage() {
+            currentPage--;
+            await loadProposals('prev');
+            updatePageInfo();
+        }
+
+        // Обновление кнопок пагинации
+        function updatePaginationButtons(hasNext, hasPrev) {
+            document.getElementById('nextPage').disabled = !hasNext;
+            document.getElementById('prevPage').disabled = !hasPrev || currentPage === 1;
+        }
+
+        // Обновление информации о странице
+        function updatePageInfo() {
+            document.getElementById('pageInfo').textContent = `Страница ${currentPage}`;
+        }
+
+        // Показать успешное сообщение
+        function showSuccess() {
+            const successMessage = document.getElementById('successMessage');
+            const errorMessage = document.getElementById('errorMessage');
             
-            if (proposals.length === 0) {
-                proposalsContainer.innerHTML = '<div class="loading">Пока нет предложений. Будьте первым!</div>';
-                return;
-            }
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'block';
+            
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 5000);
+        }
 
-            proposalsContainer.innerHTML = '';
-            proposals.forEach(proposal => {
-                const proposalItem = document.createElement('div');
-                proposalItem.className = 'proposal-item';
-                proposalItem.innerHTML = `
-                    <div class="proposal-user">${escapeHtml(proposal.username)}</div>
-                    <div class="proposal-text">${escapeHtml(proposal.proposal)}</div>
-                    <div class="proposal-time">${proposal.date}</div>
-                `;
-                proposalsContainer.appendChild(proposalItem);
-            });
+        // Показать сообщение об ошибке
+        function showError(message) {
+            const successMessage = document.getElementById('successMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            successMessage.style.display = 'none';
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 5000);
         }
 
         // Функция для безопасного отображения текста
@@ -631,20 +1145,6 @@
             div.textContent = text;
             return div.innerHTML;
         }
-
-        // Функция для просмотра всех предложений (для админа)
-        async function viewAllProposals() {
-            const snapshot = await db.collection("proposals").orderBy("timestamp", "desc").get();
-            const allProposals = [];
-            snapshot.forEach(doc => {
-                allProposals.push({ id: doc.id, ...doc.data() });
-            });
-            console.log('Все предложения:', allProposals);
-            return allProposals;
-        }
     </script>
 </body>
 </html>
-
-
-
