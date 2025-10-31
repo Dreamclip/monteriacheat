@@ -1,0 +1,8 @@
+{
+  "name": "monteria-netlify",
+  "version": "1.0.0",
+  "description": "Monteria Client Site",
+  "scripts": {
+    "build": "echo 'No build process needed for static site'"
+  }
+}

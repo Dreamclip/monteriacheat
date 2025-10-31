@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Monteria</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <nav class="nav">
+                <div class="logo">Monteria</div>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <a href="#" id="logoutBtn">Logout</a>
+                </div>
+            </nav>
+        </header>
+
+        <div class="dashboard">
+            <h2 style="text-align: center; margin-bottom: 2rem; color: #667eea;">User Dashboard</h2>
+            
+            <div class="user-info" id="userInfo">
+                Loading user data...
+            </div>
+
+            <div class="cheat-card">
+                <div class="cheat-name">Monteria</div>
+                <div class="cheat-version">Version 0.1</div>
+                <button class="download-btn" onclick="downloadClient()" id="downloadBtn">
+                    Download Client
+                </button>
+                <p style="margin-top: 1rem; color: #cccccc; font-size: 0.9rem;">
+                    Secure download link valid for 24 hours
+                </p>
+            </div>
+
+            <div class="download-stats" id="downloadStats" style="margin-top: 2rem;">
+                <!-- Статистика будет здесь -->
+            </div>
+
+            <div id="message" class="message"></div>
+        </div>
+    </div>
+
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/download.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const downloadBtn = document.getElementById('downloadBtn');
+            const user = auth.currentUser;
+            
+            if (user && !user.emailVerified) {
+                downloadBtn.disabled = true;
+                downloadBtn.style.opacity = '0.6';
+                downloadBtn.textContent = 'Verify Email to Download';
+            }
+            
+            // Загружаем статистику при загрузке страницы
+            if (user && user.emailVerified) {
+                downloadManager.updateDownloadStats();
+            }
+        });
+    </script>
+</body>
+</html>
