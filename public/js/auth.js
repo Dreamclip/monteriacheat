@@ -162,10 +162,21 @@ function registerUser(email, password) {
 }
 
 function sendEmailVerification(user) {
-    return user.sendEmailVerification({
+    const actionCodeSettings = {
         url: 'https://monteria.netlify.app/dashboard.html',
         handleCodeInApp: true
-    });
+    };
+    
+    return user.sendEmailVerification(actionCodeSettings)
+        .then(() => {
+            console.log('Verification email sent');
+            // Сохраняем что email отправлен
+            localStorage.setItem('emailVerificationSent', 'true');
+        })
+        .catch((error) => {
+            console.error('Error sending verification:', error);
+            throw error;
+        });
 }
 
 function resendVerification() {
@@ -226,4 +237,5 @@ function showMessage(message, type) {
             messageDiv.style.display = 'none';
         }, 5000);
     }
+
 }
