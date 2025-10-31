@@ -17,7 +17,7 @@ class DownloadManager {
             downloadBtn.classList.add('loading');
 
             // Прямая ссылка на ZIP файл в папке public/downloads
-            const downloadUrl = 'https://drive.usercontent.google.com/download?id=1pfbSfInh66yR5omVcpPK3kZ6hSaVNkUR&export=download&authuser=0';
+            const downloadUrl = 'https://drive.google.com/file/d/1pfbSfInh66yR5omVcpPK3kZ6hSaVNkUR/view?usp=drive_link';
             
             // Проверяем доступность файла
             const response = await fetch(downloadUrl, { method: 'HEAD' });
@@ -117,4 +117,5 @@ function downloadClient() {
     downloadManager.downloadClient();
 
 }
+
 
