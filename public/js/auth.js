@@ -49,16 +49,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const currentPath = window.location.pathname;
             
             if (user) {
-                if (user.emailVerified) {
-                    if (currentPath === '/login.html' || currentPath === '/') {
-                        window.location.href = '/dashboard.html';
+                // ПЕРЕЗАГРУЖАЕМ пользователя чтобы получить актуальные данные
+                user.reload().then(() => {
+                    if (user.emailVerified) {
+                        if (currentPath === '/login.html' || currentPath === '/') {
+                            window.location.href = '/dashboard.html';
+                        }
+                    } else {
+                        if (currentPath === '/dashboard.html') {
+                            window.location.href = '/login.html';
+                        }
+                        showMessage('Please verify your email before accessing dashboard', 'warning');
                     }
-                } else {
-                    if (currentPath === '/dashboard.html') {
-                        window.location.href = '/login.html';
-                    }
-                    showMessage('Please verify your email before accessing dashboard', 'warning');
-                }
+                }).catch(error => {
+                    console.error('Error reloading user:', error);
+                });
             } else {
                 if (currentPath === '/dashboard.html') {
                     window.location.href = '/login.html';
@@ -68,7 +73,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         updateUI(user);
     });
-});
 
 // Остальные функции остаются такими же как в предыдущей версии
 function updateUI(user) {
@@ -239,3 +243,4 @@ function showMessage(message, type) {
     }
 
 }
+
